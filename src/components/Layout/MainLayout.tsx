@@ -3,10 +3,10 @@ import React, { useState } from "react";
 import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { MenuIcon, XIcon, LogOut, User, BarChart3, BookOpen, BriefcaseBusiness, Users, Award, FileText, Search } from "lucide-react";
+import { MenuIcon, XIcon, LogOut, User, BarChart3, BookOpen, BriefcaseBusiness, Users, Award, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -99,24 +99,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <SidebarContent>
               <div className="py-4 space-y-1">
                 {filteredNavItems.map((item) => (
-                  <TooltipProvider key={item.title}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => navigate(item.path)}
-                          className={`w-full flex items-center p-3 space-x-3 hover:bg-sidebar-accent rounded-md transition-colors ${
-                            location.pathname === item.path 
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                              : "text-sidebar-foreground"
-                          }`}
-                        >
-                          <item.icon size={20} />
-                          <span>{item.title}</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">{item.title}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip key={item.title}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => navigate(item.path)}
+                        className={`w-full flex items-center p-3 space-x-3 hover:bg-sidebar-accent rounded-md transition-colors ${
+                          location.pathname === item.path 
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                            : "text-sidebar-foreground"
+                        }`}
+                      >
+                        <item.icon size={20} />
+                        <span>{item.title}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{item.title}</TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
             </SidebarContent>
