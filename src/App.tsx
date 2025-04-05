@@ -15,6 +15,13 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import { RouterGuard } from "./components/RouterGuard";
 
+// New pages
+import StudentDatabase from "./pages/StudentDatabase";
+import PlacementAnalytics from "./pages/PlacementAnalytics";
+import CourseSuggestion from "./pages/CourseSuggestion";
+import ResumeAnalyzer from "./pages/ResumeAnalyzer";
+import ReferStudents from "./pages/ReferStudents";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -48,6 +55,37 @@ const App = () => (
             <Route path="/jobs" element={
               <RouterGuard>
                 <JobOpportunities />
+              </RouterGuard>
+            } />
+            
+            {/* Placement Role Routes */}
+            <Route path="/students" element={
+              <RouterGuard allowedRoles={["placement"]}>
+                <StudentDatabase />
+              </RouterGuard>
+            } />
+            <Route path="/analytics" element={
+              <RouterGuard allowedRoles={["placement"]}>
+                <PlacementAnalytics />
+              </RouterGuard>
+            } />
+            
+            {/* Student Role Routes */}
+            <Route path="/courses" element={
+              <RouterGuard allowedRoles={["student"]}>
+                <CourseSuggestion />
+              </RouterGuard>
+            } />
+            <Route path="/resume" element={
+              <RouterGuard allowedRoles={["student"]}>
+                <ResumeAnalyzer />
+              </RouterGuard>
+            } />
+            
+            {/* Alumni Role Routes */}
+            <Route path="/refer" element={
+              <RouterGuard allowedRoles={["alumni"]}>
+                <ReferStudents />
               </RouterGuard>
             } />
             
