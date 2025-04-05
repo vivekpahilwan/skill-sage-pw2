@@ -4,20 +4,26 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect to dashboard if authenticated, otherwise to login
-    if (isAuthenticated) {
-      navigate("/dashboard");
-    } else {
-      navigate("/login");
+    // Only redirect after authentication status is determined
+    if (!isLoading) {
+      if (isAuthenticated) {
+        navigate("/dashboard");
+      } else {
+        navigate("/login");
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, isLoading]);
 
-  // This component doesn't render anything as it's just a redirector
-  return null;
+  // Show a simple loading state while determining auth status
+  return isLoading ? (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-lg">Loading...</p>
+    </div>
+  ) : null;
 };
 
 export default Index;
