@@ -15,6 +15,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean; // Adding the isLoading property
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
   role: UserRole;
@@ -52,6 +53,7 @@ export const mockUsers = [
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Add isLoading state with initial value true
   
   useEffect(() => {
     // Check if there's a stored user in localStorage
@@ -66,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem("user");
       }
     }
+    setIsLoading(false); // Set loading to false after checking authentication
   }, []);
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
@@ -102,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated,
+        isLoading, // Include isLoading in the context value
         login,
         logout,
         role: user?.role || null,
@@ -119,3 +123,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
