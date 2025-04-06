@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { 
   ArrowUpDown,
   BookmarkPlus,
@@ -19,11 +19,14 @@ import {
   MapPin, 
   Plus, 
   Search,
-  DollarSign
+  DollarSign,
+  Edit,
+  Users
 } from "lucide-react";
 
 const JobOpportunities: React.FC = () => {
   const { role } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterLocation, setFilterLocation] = useState("all");
@@ -132,13 +135,28 @@ const JobOpportunities: React.FC = () => {
       return 0;
     });
 
+  const handleCreateJob = () => {
+    navigate("/jobs/create");
+  };
+
+  const handleEditJob = (jobId: number) => {
+    navigate(`/jobs/edit/${jobId}`);
+  };
+
+  const handleViewApplicants = (jobId: number) => {
+    navigate(`/jobs/applicants/${jobId}`);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
           <h1 className="text-3xl font-bold">Job Opportunities</h1>
           {(role === "placement" || role === "alumni") && (
-            <Button className="mt-4 sm:mt-0 bg-skillsage-primary hover:bg-skillsage-primary/90">
+            <Button 
+              className="mt-4 sm:mt-0 bg-skillsage-primary hover:bg-skillsage-primary/90"
+              onClick={handleCreateJob}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Post New Opportunity
             </Button>
@@ -293,8 +311,14 @@ const JobOpportunities: React.FC = () => {
                         
                         {(role === "placement" || role === "alumni") && (
                           <>
-                            <Button variant="outline">Edit</Button>
-                            <Button variant="default">View Applicants</Button>
+                            <Button variant="outline" onClick={() => handleEditJob(job.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button variant="default" onClick={() => handleViewApplicants(job.id)}>
+                              <Users className="h-4 w-4 mr-2" />
+                              View Applicants
+                            </Button>
                           </>
                         )}
                       </div>

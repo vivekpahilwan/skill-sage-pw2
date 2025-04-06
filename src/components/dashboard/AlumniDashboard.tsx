@@ -3,10 +3,16 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BriefcaseBusiness, Calendar, GraduationCap, HandHelping, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BriefcaseBusiness, Calendar, HandHelping, Users, Edit, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import SeminarForm from "@/components/seminar/SeminarForm";
 
 export const AlumniDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  
   const stats = [
     { 
       id: 1, 
@@ -79,49 +85,56 @@ export const AlumniDashboard: React.FC = () => {
       attendees: 80 
     },
   ];
-  
-  const topStudents = [
-    { 
-      id: 1, 
-      name: "Alex Wong", 
-      skills: ["React", "Node.js", "AWS"], 
-      department: "Computer Science",
-      avatar: "https://i.pravatar.cc/150?img=12" 
-    },
-    { 
-      id: 2, 
-      name: "Priya Patel", 
-      skills: ["Python", "Data Science", "Machine Learning"], 
-      department: "Data Science",
-      avatar: "https://i.pravatar.cc/150?img=25" 
-    },
-    { 
-      id: 3, 
-      name: "Michael Brown", 
-      skills: ["UI/UX", "Figma", "JavaScript"], 
-      department: "Design",
-      avatar: "https://i.pravatar.cc/150?img=15" 
-    },
-    { 
-      id: 4, 
-      name: "Lisa Chen", 
-      skills: ["Project Management", "Agile", "Jira"], 
-      department: "Business",
-      avatar: "https://i.pravatar.cc/150?img=33" 
-    },
-  ];
+
+  const handlePostJob = () => {
+    navigate("/jobs/create");
+  };
+
+  const handleEditSeminar = (seminarId: number) => {
+    navigate(`/seminars/edit/${seminarId}`);
+  };
+
+  const handleViewAttendees = (seminarId: number) => {
+    navigate(`/seminars/attendees/${seminarId}`);
+  };
+
+  const handleSeminarSubmit = (formData: any) => {
+    console.log("New seminar data:", formData);
+    toast.success("Seminar request submitted successfully");
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h1 className="text-3xl font-bold">Alumni Dashboard</h1>
         <div className="mt-4 sm:mt-0 space-x-2">
-          <Button className="bg-skillsage-primary hover:bg-skillsage-primary/90">
+          <Button 
+            className="bg-skillsage-primary hover:bg-skillsage-primary/90"
+            onClick={handlePostJob}
+          >
             Post Job Opportunity
           </Button>
-          <Button variant="outline">
-            Request Seminar
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                Request Seminar
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Request a New Seminar</DialogTitle>
+                <DialogDescription>
+                  Fill out the details for your proposed seminar.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[70vh] overflow-y-auto py-4">
+                <SeminarForm 
+                  mode="create"
+                  onSubmit={handleSeminarSubmit}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       
@@ -181,7 +194,7 @@ export const AlumniDashboard: React.FC = () => {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full mt-4">View All Referrals</Button>
+            <Button variant="outline" className="w-full mt-4" onClick={() => navigate('/refer')}>View All Referrals</Button>
           </CardContent>
         </Card>
 
@@ -207,8 +220,14 @@ export const AlumniDashboard: React.FC = () => {
                     <div>{seminar.location}</div>
                   </div>
                   <div className="mt-4 flex space-x-2">
-                    <Button size="sm" variant="outline">Edit Details</Button>
-                    <Button size="sm" variant="outline">View Attendees</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleEditSeminar(seminar.id)}>
+                      <Edit className="mr-1 h-3 w-3" />
+                      Edit Details
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleViewAttendees(seminar.id)}>
+                      <Eye className="mr-1 h-3 w-3" />
+                      View Attendees
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -219,61 +238,13 @@ export const AlumniDashboard: React.FC = () => {
                   <p className="mt-2 text-sm text-muted-foreground">
                     Schedule a seminar to share your industry expertise with students
                   </p>
-                  <Button className="mt-4">Request New Seminar</Button>
+                  <Button className="mt-4" onClick={() => navigate('/seminars/create')}>Request New Seminar</Button>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Top Performing Students */}
-      <Card className="animate-slide-in" style={{ animationDelay: "400ms" }}>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Top Performing Students</CardTitle>
-            <CardDescription>Students you might want to refer</CardDescription>
-          </div>
-          <GraduationCap className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {topStudents.map((student) => (
-              <Card key={student.id} className="bg-muted/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <Avatar>
-                      <AvatarImage src={student.avatar} alt={student.name} />
-                      <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-medium">{student.name}</h4>
-                      <p className="text-xs text-muted-foreground">{student.department}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap gap-1">
-                      {student.skills.map((skill, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex space-x-2 mt-3">
-                      <Button size="sm" variant="outline" className="flex-1">
-                        <HandHelping className="h-4 w-4 mr-1" />
-                        Refer
-                      </Button>
-                      <Button size="sm" variant="ghost">View Profile</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <Button variant="outline" className="w-full mt-4">View All Students</Button>
-        </CardContent>
-      </Card>
     </div>
   );
 };

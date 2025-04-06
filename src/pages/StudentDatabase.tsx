@@ -12,14 +12,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Filter } from "lucide-react";
+import { Search, Download, Filter, FileText } from "lucide-react";
 import { RouterGuard } from "@/components/RouterGuard";
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
   DropdownMenuContent, 
-  DropdownMenuCheckboxItem 
+  DropdownMenuCheckboxItem,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 // Sample student data
 const studentsData = [
@@ -173,15 +180,100 @@ const StudentDatabase = () => {
     }
   };
 
+  const exportToCSV = () => {
+    // Headers
+    const headers = ["ID", "Name", "Email", "Department", "Year", "CGPA", "Placement Status", "Company"];
+    
+    // Convert data to CSV format
+    const csvContent = [
+      headers.join(","),
+      ...filteredStudents.map(student => 
+        [
+          student.id, 
+          student.name, 
+          student.email, 
+          student.department, 
+          student.year, 
+          student.cgpa, 
+          student.placementStatus, 
+          student.company
+        ].join(",")
+      )
+    ].join("\n");
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "student_database.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("CSV file exported successfully");
+  };
+
+  const exportToExcel = () => {
+    // This is a simplified approach; in a real app, you would use a library like xlsx
+    // or make a server request to generate a proper Excel file
+    
+    // Create CSV content as above
+    const headers = ["ID", "Name", "Email", "Department", "Year", "CGPA", "Placement Status", "Company"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredStudents.map(student => 
+        [
+          student.id, 
+          student.name, 
+          student.email, 
+          student.department, 
+          student.year, 
+          student.cgpa, 
+          student.placementStatus, 
+          student.company
+        ].join(",")
+      )
+    ].join("\n");
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "student_database.xls");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Excel file exported successfully");
+  };
+
   return (
     <RouterGuard allowedRoles={["placement"]}>
       <MainLayout>
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">Student Database</h1>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Download size={16} /> Export Data
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Download size={16} /> Export Data
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={exportToCSV}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Export as CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToExcel}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Export as Excel</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="flex flex-col md:flex-row justify-between gap-4">

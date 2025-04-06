@@ -20,6 +20,13 @@ import PlacementAnalytics from "./pages/PlacementAnalytics";
 import CourseSuggestion from "./pages/CourseSuggestion";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer";
 import ReferStudents from "./pages/ReferStudents";
+import CreateJob from "./pages/job/CreateJob";
+import EditJob from "./pages/job/EditJob";
+import ViewApplicants from "./pages/job/ViewApplicants";
+import CreateSeminar from "./pages/seminar/CreateSeminar";
+import EditSeminar from "./pages/seminar/EditSeminar";
+import ViewAttendees from "./pages/seminar/ViewAttendees";
+import AlumniProfile from "./pages/AlumniProfile";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +63,40 @@ const App = () => (
             </RouterGuard>
           } />
           
+          {/* Job Management Routes */}
+          <Route path="/jobs/create" element={
+            <RouterGuard allowedRoles={["placement", "alumni"]}>
+              <CreateJob />
+            </RouterGuard>
+          } />
+          <Route path="/jobs/edit/:id" element={
+            <RouterGuard allowedRoles={["placement", "alumni"]}>
+              <EditJob />
+            </RouterGuard>
+          } />
+          <Route path="/jobs/applicants/:id" element={
+            <RouterGuard allowedRoles={["placement", "alumni"]}>
+              <ViewApplicants />
+            </RouterGuard>
+          } />
+          
+          {/* Seminar Management Routes */}
+          <Route path="/seminars/create" element={
+            <RouterGuard allowedRoles={["alumni"]}>
+              <CreateSeminar />
+            </RouterGuard>
+          } />
+          <Route path="/seminars/edit/:id" element={
+            <RouterGuard allowedRoles={["alumni"]}>
+              <EditSeminar />
+            </RouterGuard>
+          } />
+          <Route path="/seminars/attendees/:id" element={
+            <RouterGuard allowedRoles={["alumni"]}>
+              <ViewAttendees />
+            </RouterGuard>
+          } />
+          
           {/* Placement Role Routes */}
           <Route path="/students" element={
             <RouterGuard allowedRoles={["placement"]}>
@@ -84,6 +125,11 @@ const App = () => (
           <Route path="/refer" element={
             <RouterGuard allowedRoles={["alumni"]}>
               <ReferStudents />
+            </RouterGuard>
+          } />
+          <Route path="/alumni/profile" element={
+            <RouterGuard allowedRoles={["alumni"]}>
+              <AlumniProfile />
             </RouterGuard>
           } />
           

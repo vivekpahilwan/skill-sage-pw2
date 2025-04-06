@@ -20,8 +20,11 @@ import {
   Pie,
   Cell
 } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 export const PlacementDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  
   const placementStats = [
     { id: 1, title: "Total Students", value: 453, icon: Users, change: "+23 from last year", changeType: "positive" },
     { id: 2, title: "Placed Students", value: 301, icon: FileCheck, change: "+42 from last year", changeType: "positive" },
@@ -63,12 +66,23 @@ export const PlacementDashboard: React.FC = () => {
     { id: 3, company: "Amazon", role: "Data Scientist", deadline: "May 5, 2025", status: "Active" },
   ];
 
+  const handleCreateOpportunity = () => {
+    navigate("/jobs/create");
+  };
+
+  const handleViewAllOpportunities = () => {
+    navigate("/jobs");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h1 className="text-3xl font-bold">Placement Dashboard</h1>
         <div className="mt-4 sm:mt-0">
-          <Button className="bg-skillsage-primary hover:bg-skillsage-primary/90">
+          <Button 
+            className="bg-skillsage-primary hover:bg-skillsage-primary/90"
+            onClick={handleCreateOpportunity}
+          >
             Post New Opportunity
           </Button>
         </div>
@@ -206,13 +220,19 @@ export const PlacementDashboard: React.FC = () => {
                   <div className="text-xs">Deadline: {opportunity.deadline}</div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">Edit</Button>
-                  <Button variant="outline" size="sm">View Applicants</Button>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/jobs/edit/${opportunity.id}`)}>Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/jobs/applicants/${opportunity.id}`)}>View Applicants</Button>
                 </div>
               </div>
             ))}
           </div>
-          <Button variant="outline" className="w-full mt-4">View All Opportunities</Button>
+          <Button 
+            variant="outline" 
+            className="w-full mt-4"
+            onClick={handleViewAllOpportunities}
+          >
+            View All Opportunities
+          </Button>
         </CardContent>
       </Card>
     </div>
