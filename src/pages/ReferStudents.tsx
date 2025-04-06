@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, Download, Filter, HandHelping, FileText } from "lucide-react";
 import { toast } from "sonner";
+import ReferralDialog from "@/components/alumni/ReferralDialog";
 
 // Mock student data
 const studentsData = [
@@ -121,6 +122,7 @@ const ReferStudents: React.FC = () => {
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
+  const [isReferralDialogOpen, setIsReferralDialogOpen] = useState(false);
   
   // Extract unique departments and skills
   const departments = Array.from(new Set(studentsData.map(student => student.department)));
@@ -248,8 +250,15 @@ const ReferStudents: React.FC = () => {
       return;
     }
     
-    // In a real app, this would navigate to a form or open a modal
-    toast.success(`${selectedStudents.length} students selected for referral`);
+    // Open the referral dialog instead of just showing a toast
+    setIsReferralDialogOpen(true);
+  };
+
+  // Get selected students' data for the referral dialog
+  const getSelectedStudentsData = () => {
+    return studentsData
+      .filter(student => selectedStudents.includes(student.id))
+      .map(({ id, name, email }) => ({ id, name, email }));
   };
   
   return (
@@ -477,8 +486,8 @@ const ReferStudents: React.FC = () => {
                               variant="outline" 
                               className="h-8"
                               onClick={() => {
-                                // In a real app, this would navigate to a referral form
-                                toast.success(`Referring ${student.name}`);
+                                setSelectedStudents([student.id]);
+                                setIsReferralDialogOpen(true);
                               }}
                             >
                               <HandHelping className="h-4 w-4 mr-1" />
@@ -509,6 +518,13 @@ const ReferStudents: React.FC = () => {
             </Card>
           </div>
         </div>
+
+        {/* Referral Dialog */}
+        <ReferralDialog 
+          isOpen={isReferralDialogOpen}
+          onClose={() => setIsReferralDialogOpen(false)}
+          students={getSelectedStudentsData()}
+        />
       </div>
     </MainLayout>
   );
