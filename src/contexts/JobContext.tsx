@@ -88,6 +88,7 @@ interface JobContextType {
   jobs: JobOpportunity[];
   addJob: (job: Omit<JobOpportunity, "id" | "postedDate" | "logo">) => void;
   updateJob: (job: JobOpportunity) => void;
+  deleteJob: (id: number) => void;
   getJob: (id: number) => JobOpportunity | undefined;
 }
 
@@ -121,12 +122,16 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
+  const deleteJob = (id: number) => {
+    setJobs(prevJobs => prevJobs.filter(job => job.id !== id));
+  };
+
   const getJob = (id: number) => {
     return jobs.find(job => job.id === id);
   };
 
   return (
-    <JobContext.Provider value={{ jobs, addJob, updateJob, getJob }}>
+    <JobContext.Provider value={{ jobs, addJob, updateJob, deleteJob, getJob }}>
       {children}
     </JobContext.Provider>
   );

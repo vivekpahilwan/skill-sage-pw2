@@ -9,6 +9,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useJobContext } from "@/contexts/JobContext";
 import { useNavigate } from "react-router-dom";
 import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { 
   ArrowUpDown,
   BookmarkPlus,
   BriefcaseBusiness, 
@@ -21,17 +33,19 @@ import {
   Search,
   DollarSign,
   Edit,
-  Users
+  Users,
+  Trash2
 } from "lucide-react";
 
 const JobOpportunities: React.FC = () => {
   const { role } = useAuth();
-  const { jobs } = useJobContext();
+  const { jobs, deleteJob } = useJobContext();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterLocation, setFilterLocation] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
+  const [jobToDelete, setJobToDelete] = useState<number | null>(null);
   
   // Filter and sort jobs
   const filteredJobs = jobs
@@ -77,6 +91,12 @@ const JobOpportunities: React.FC = () => {
 
   const handleViewApplicants = (jobId: number) => {
     navigate(`/jobs/applicants/${jobId}`);
+  };
+
+  const handleDeleteJob = (id: number) => {
+    deleteJob(id);
+    toast.success("Job opportunity deleted successfully");
+    setJobToDelete(null);
   };
 
   return (
@@ -247,6 +267,31 @@ const JobOpportunities: React.FC = () => {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Job Opportunity</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this job opportunity? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteJob(job.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                             <Button variant="default" onClick={() => handleViewApplicants(job.id)}>
                               <Users className="h-4 w-4 mr-2" />
                               View Applicants
