@@ -5,39 +5,18 @@ import { MainLayout } from "@/components/Layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SeminarForm from "@/components/seminar/SeminarForm";
 import { toast } from "sonner";
-
-// Mock upcoming seminars data
-const upcomingSeminars = [
-  { 
-    id: 1, 
-    title: "Machine Learning in Industry", 
-    date: "Apr 15, 2025", 
-    time: "15:00", 
-    location: "Virtual", 
-    attendees: 35,
-    description: "An in-depth look at how machine learning is revolutionizing various industries."
-  },
-  { 
-    id: 2, 
-    title: "Career Pathways in Tech", 
-    date: "Apr 28, 2025", 
-    time: "14:00", 
-    location: "Campus Auditorium", 
-    attendees: 80,
-    description: "Guidance on different career paths available in the tech industry and how to prepare for them."
-  },
-];
+import { useSeminarContext } from "@/contexts/SeminarContext";
 
 const EditSeminar: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { getSeminar, updateSeminar } = useSeminarContext();
   const [seminar, setSeminar] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // In a real app, this would be an API call to fetch seminar details
     const seminarId = parseInt(id || "0");
-    const foundSeminar = upcomingSeminars.find(s => s.id === seminarId);
+    const foundSeminar = getSeminar(seminarId);
     
     if (foundSeminar) {
       setSeminar(foundSeminar);
@@ -47,13 +26,17 @@ const EditSeminar: React.FC = () => {
     }
     
     setIsLoading(false);
-  }, [id, navigate]);
+  }, [id, navigate, getSeminar]);
   
   const handleUpdateSeminar = (formData: any) => {
-    // In a real app, this would be an API call to update the seminar
-    console.log("Updating seminar with data:", formData);
+    // Preserve the original ID and attendees count
+    const updatedSeminar = { 
+      ...formData,
+      id: seminar?.id,
+      attendees: seminar?.attendees
+    };
     
-    // Mock successful update
+    updateSeminar(updatedSeminar);
     toast.success("Seminar updated successfully");
     navigate("/dashboard");
   };

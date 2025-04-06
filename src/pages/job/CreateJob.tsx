@@ -5,15 +5,16 @@ import { MainLayout } from "@/components/Layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import JobForm from "@/components/job/JobForm";
 import { toast } from "sonner";
+import { useJobContext } from "@/contexts/JobContext";
 
 const CreateJob: React.FC = () => {
   const navigate = useNavigate();
+  const { addJob } = useJobContext();
   
   const handleCreateJob = (formData: any) => {
-    // In a real app, this would be an API call to create a new job
-    console.log("Creating job with data:", formData);
+    // Add the new job through context
+    addJob(formData);
     
-    // Mock successful creation
     toast.success("Job opportunity created successfully");
     navigate("/jobs");
   };

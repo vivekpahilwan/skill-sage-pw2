@@ -5,15 +5,16 @@ import { MainLayout } from "@/components/Layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SeminarForm from "@/components/seminar/SeminarForm";
 import { toast } from "sonner";
+import { useSeminarContext } from "@/contexts/SeminarContext";
 
 const CreateSeminar: React.FC = () => {
   const navigate = useNavigate();
+  const { addSeminar } = useSeminarContext();
   
   const handleCreateSeminar = (formData: any) => {
-    // In a real app, this would be an API call to create a new seminar
-    console.log("Creating seminar with data:", formData);
+    // Add the new seminar through context
+    addSeminar(formData);
     
-    // Mock successful creation
     toast.success("Seminar scheduled successfully");
     navigate("/dashboard");
   };

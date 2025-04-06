@@ -9,9 +9,11 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import SeminarForm from "@/components/seminar/SeminarForm";
+import { useSeminarContext } from "@/contexts/SeminarContext";
 
 export const AlumniDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { seminars, addSeminar, updateSeminar } = useSeminarContext();
   
   const stats = [
     { 
@@ -67,24 +69,7 @@ export const AlumniDashboard: React.FC = () => {
     },
   ];
   
-  const upcomingSeminars = [
-    { 
-      id: 1, 
-      title: "Machine Learning in Industry", 
-      date: "Apr 15, 2025", 
-      time: "3:00 PM - 5:00 PM", 
-      location: "Virtual", 
-      attendees: 35 
-    },
-    { 
-      id: 2, 
-      title: "Career Pathways in Tech", 
-      date: "Apr 28, 2025", 
-      time: "2:00 PM - 4:00 PM", 
-      location: "Campus Auditorium", 
-      attendees: 80 
-    },
-  ];
+  const upcomingSeminars = seminars;
 
   const handlePostJob = () => {
     navigate("/jobs/create");
@@ -99,8 +84,8 @@ export const AlumniDashboard: React.FC = () => {
   };
 
   const handleSeminarSubmit = (formData: any) => {
-    console.log("New seminar data:", formData);
-    toast.success("Seminar request submitted successfully");
+    addSeminar(formData);
+    toast.success("Seminar scheduled successfully");
   };
 
   return (
