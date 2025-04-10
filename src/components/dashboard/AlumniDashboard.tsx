@@ -75,11 +75,11 @@ export const AlumniDashboard: React.FC = () => {
     navigate("/jobs/create");
   };
 
-  const handleEditSeminar = (seminarId: number) => {
+  const handleEditSeminar = (seminarId: string) => {
     navigate(`/seminars/edit/${seminarId}`);
   };
 
-  const handleViewAttendees = (seminarId: number) => {
+  const handleViewAttendees = (seminarId: string) => {
     navigate(`/seminars/attendees/${seminarId}`);
   };
 
@@ -195,7 +195,7 @@ export const AlumniDashboard: React.FC = () => {
                 <div key={seminar.id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-medium">{seminar.title}</h4>
-                    <Badge variant="outline">{seminar.attendees} attendees</Badge>
+                    <Badge variant="outline">{seminar.current_attendees} attendees</Badge>
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <div className="flex items-center">

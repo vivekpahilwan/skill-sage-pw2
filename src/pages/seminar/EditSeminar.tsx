@@ -15,17 +15,26 @@ const EditSeminar: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const seminarId = parseInt(id || "0");
-    const foundSeminar = getSeminar(seminarId);
+    const fetchSeminar = async () => {
+      if (!id) {
+        toast.error("Seminar ID is missing");
+        navigate("/dashboard");
+        return;
+      }
+      
+      const foundSeminar = await getSeminar(id);
+      
+      if (foundSeminar) {
+        setSeminar(foundSeminar);
+      } else {
+        toast.error("Seminar not found");
+        navigate("/dashboard");
+      }
+      
+      setIsLoading(false);
+    };
     
-    if (foundSeminar) {
-      setSeminar(foundSeminar);
-    } else {
-      toast.error("Seminar not found");
-      navigate("/dashboard");
-    }
-    
-    setIsLoading(false);
+    fetchSeminar();
   }, [id, navigate, getSeminar]);
   
   const handleUpdateSeminar = (formData: any) => {
@@ -33,7 +42,7 @@ const EditSeminar: React.FC = () => {
     const updatedSeminar = { 
       ...formData,
       id: seminar?.id,
-      attendees: seminar?.attendees
+      current_attendees: seminar?.current_attendees
     };
     
     updateSeminar(updatedSeminar);
