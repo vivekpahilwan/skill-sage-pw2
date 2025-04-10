@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const signup = async (email: string, password: string, fullName: string, selectedRole: UserRole) => {
+  const signup = async (email: string, password: string, fullName: string, selectedRole: UserRole): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -187,7 +187,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       toast.success("Account created successfully! Please log in.");
       
-      return data;
+      // Remove the return statement that was returning data
+      // This makes the function return void as per the interface
     } catch (err: any) {
       console.error("Signup error:", err);
       setError(err.message);
