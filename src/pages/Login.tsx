@@ -6,20 +6,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { AlertCircle } from "lucide-react";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState("student");
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>("student");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, signup, isAuthenticated, error } = useAuth();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -28,72 +29,75 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  const validateLogin = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!email) errors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(email)) errors.email = "Invalid email format";
+    
+    if (!password) errors.password = "Password is required";
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateSignup = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!fullName) errors.fullName = "Full name is required";
+    
+    if (!email) errors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(email)) errors.email = "Invalid email format";
+    
+    if (!password) errors.password = "Password is required";
+    else if (password.length < 6) errors.password = "Password must be at least 6 characters";
+    
+    if (!confirmPassword) errors.confirmPassword = "Please confirm your password";
+    else if (password !== confirmPassword) errors.confirmPassword = "Passwords don't match";
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      toast.error("Please enter both email and password");
-      return;
-    }
+    if (!validateLogin()) return;
     
-    await login(email, password);
+    setIsSubmitting(true);
+    try {
+      await login(email, password);
+    } catch (error) {
+      // Error is handled in the auth context
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !fullName) {
-      toast.error("Please fill all required fields");
-      return;
-    }
+    if (!validateSignup()) return;
     
-    if (password !== confirmPassword) {
-      toast.error("Passwords don't match");
-      return;
-    }
-    
+    setIsSubmitting(true);
     try {
-      setIsLoading(true);
-      
-      // Register with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: selectedRole
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Create user profile
-      const { error: userError } = await supabase
-        .from('users')
-        .insert([{
-          id: data.user?.id,
-          email: email,
-          full_name: fullName,
-          role: selectedRole
-        }]);
-        
-      if (userError) throw userError;
-      
-      toast.success("Account created successfully! Please log in.");
+      await signup(email, password, fullName, selectedRole);
       
       // Clear form
       setEmail("");
       setPassword("");
       setFullName("");
       setConfirmPassword("");
+      setSelectedRole("student");
       
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(error.message || "Failed to create account");
+      // Switch to login tab
+      document.getElementById("login-tab")?.click();
+      
+      toast.success("Account created successfully! Please log in.");
+    } catch (error) {
+      // Error is handled in the auth context
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -107,7 +111,7 @@ const Login: React.FC = () => {
         
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="login" id="login-tab">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
           
@@ -130,7 +134,13 @@ const Login: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className={formErrors.email ? "border-red-500" : ""}
                     />
+                    {formErrors.email && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" /> {formErrors.email}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -145,12 +155,22 @@ const Login: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className={formErrors.password ? "border-red-500" : ""}
                     />
+                    {formErrors.password && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" /> {formErrors.password}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" type="submit" disabled={isLoading}>
-                    {isLoading ? "Logging in..." : "Login"}
+                  <Button 
+                    className="w-full" 
+                    type="submit" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Logging in..." : "Login"}
                   </Button>
                 </CardFooter>
               </form>
@@ -175,7 +195,13 @@ const Login: React.FC = () => {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
+                      className={formErrors.fullName ? "border-red-500" : ""}
                     />
+                    {formErrors.fullName && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" /> {formErrors.fullName}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Account Type</Label>
@@ -183,7 +209,7 @@ const Login: React.FC = () => {
                       id="role"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={selectedRole}
-                      onChange={(e) => setSelectedRole(e.target.value)}
+                      onChange={(e) => setSelectedRole(e.target.value as UserRole)}
                     >
                       <option value="student">Student</option>
                       <option value="alumni">Alumni</option>
@@ -199,7 +225,13 @@ const Login: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className={formErrors.email ? "border-red-500" : ""}
                     />
+                    {formErrors.email && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" /> {formErrors.email}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password-signup">Password</Label>
@@ -209,7 +241,13 @@ const Login: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className={formErrors.password ? "border-red-500" : ""}
                     />
+                    {formErrors.password && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" /> {formErrors.password}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirm Password</Label>
@@ -219,12 +257,22 @@ const Login: React.FC = () => {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
+                      className={formErrors.confirmPassword ? "border-red-500" : ""}
                     />
+                    {formErrors.confirmPassword && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" /> {formErrors.confirmPassword}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" type="submit" disabled={isLoading}>
-                    {isLoading ? "Creating Account..." : "Create Account"}
+                  <Button 
+                    className="w-full" 
+                    type="submit" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Creating Account..." : "Create Account"}
                   </Button>
                 </CardFooter>
               </form>

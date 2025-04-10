@@ -18,6 +18,7 @@ interface AuthContextType {
   user: UserData | null;
   role: UserRole | null;
   login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, fullName: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -115,6 +116,88 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
+  const signup = async (email: string, password: string, fullName: string, selectedRole: UserRole) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Register with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: selectedRole
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Create user profile
+      const { error: userError } = await supabase
+        .from('users')
+        .insert([{
+          id: data.user?.id,
+          email: email,
+          full_name: fullName,
+          role: selectedRole
+        }]);
+        
+      if (userError) throw userError;
+      
+      // Create role-specific profile
+      if (selectedRole === 'student') {
+        await supabase
+          .from('student_profiles')
+          .insert([{
+            id: data.user?.id,
+            prn: '',
+            department: '',
+            year: 1,
+            cgpa: 0,
+            phone: '',
+            skills: [],
+            address: ''
+          }]);
+      } else if (selectedRole === 'placement') {
+        await supabase
+          .from('tpo_profiles')
+          .insert([{
+            id: data.user?.id,
+            department: '',
+            position: '',
+            phone: ''
+          }]);
+      } else if (selectedRole === 'alumni') {
+        await supabase
+          .from('alumni_profiles')
+          .insert([{
+            id: data.user?.id,
+            graduation_year: new Date().getFullYear(),
+            company: '',
+            position: '',
+            experience_years: 0,
+            phone: '',
+            industry: '',
+            linkedin: ''
+          }]);
+      }
+      
+      toast.success("Account created successfully! Please log in.");
+      
+      return data;
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      setError(err.message);
+      toast.error(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -127,28 +210,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (error) throw error;
       
-      // For now, we'll simulate user roles by checking email domains
-      // In a real app, you'd get this from your users table after auth
-      let userRole: UserRole = 'student';
-      
-      if (email.includes("placement")) {
-        userRole = 'placement';
-      } else if (email.includes("alumni")) {
-        userRole = 'alumni';
-      }
-      
-      // Insert or update user in users table
+      // Get user data from the users table
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .upsert({
-          id: data.user.id,
-          email: email,
-          full_name: email.split('@')[0],
-          role: userRole,
-        }, {
-          onConflict: 'id'
-        })
-        .select()
+        .select('*')
+        .eq('id', data.user.id)
         .single();
         
       if (userError) throw userError;
@@ -201,6 +267,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       user, 
       role, 
       login, 
+      signup,
       logout, 
       isLoading, 
       error,
