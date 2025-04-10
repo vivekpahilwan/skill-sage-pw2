@@ -1,5 +1,8 @@
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "./AuthContext";
 
 export interface JobOpportunity {
   id: number;
@@ -15,7 +18,7 @@ export interface JobOpportunity {
   logo: string;
 }
 
-// Initial job data
+// Initial job data for fallback
 const initialJobs = [
   {
     id: 1,
@@ -86,10 +89,12 @@ const initialJobs = [
 
 interface JobContextType {
   jobs: JobOpportunity[];
-  addJob: (job: Omit<JobOpportunity, "id" | "postedDate" | "logo">) => void;
-  updateJob: (job: JobOpportunity) => void;
-  deleteJob: (id: number) => void;
+  addJob: (job: Omit<JobOpportunity, "id" | "postedDate" | "logo">) => Promise<void>;
+  updateJob: (job: JobOpportunity) => Promise<void>;
+  deleteJob: (id: number) => Promise<void>;
   getJob: (id: number) => JobOpportunity | undefined;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -103,27 +108,80 @@ export const useJobContext = () => {
 };
 
 export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [jobs, setJobs] = useState<JobOpportunity[]>(initialJobs);
+  const [jobs, setJobs] = useState<JobOpportunity[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const addJob = (job: Omit<JobOpportunity, "id" | "postedDate" | "logo">) => {
-    const newJob: JobOpportunity = {
-      ...job,
-      id: jobs.length > 0 ? Math.max(...jobs.map(j => j.id)) + 1 : 1,
-      postedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      logo: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 50) + 50}`,
+  // Fetch jobs from Supabase
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // For now, use the mock data
+        // This will be replaced with a Supabase query in the next phase
+        setJobs(initialJobs);
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+        setError("Failed to fetch job opportunities");
+        // Fall back to mock data
+        setJobs(initialJobs);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setJobs(prevJobs => [...prevJobs, newJob]);
+    fetchJobs();
+  }, []);
+
+  const addJob = async (job: Omit<JobOpportunity, "id" | "postedDate" | "logo">) => {
+    try {
+      // For now, simulate adding a job
+      // This will be replaced with a Supabase insert in the next phase
+      const newJob: JobOpportunity = {
+        ...job,
+        id: jobs.length > 0 ? Math.max(...jobs.map(j => j.id)) + 1 : 1,
+        postedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        logo: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 50) + 50}`,
+      };
+
+      setJobs(prevJobs => [...prevJobs, newJob]);
+      toast.success("Job added successfully");
+    } catch (error) {
+      console.error("Error adding job:", error);
+      toast.error("Failed to add job");
+      throw error;
+    }
   };
 
-  const updateJob = (updatedJob: JobOpportunity) => {
-    setJobs(prevJobs => 
-      prevJobs.map(job => job.id === updatedJob.id ? updatedJob : job)
-    );
+  const updateJob = async (updatedJob: JobOpportunity) => {
+    try {
+      // For now, simulate updating a job
+      // This will be replaced with a Supabase update in the next phase
+      setJobs(prevJobs => 
+        prevJobs.map(job => job.id === updatedJob.id ? updatedJob : job)
+      );
+      toast.success("Job updated successfully");
+    } catch (error) {
+      console.error("Error updating job:", error);
+      toast.error("Failed to update job");
+      throw error;
+    }
   };
 
-  const deleteJob = (id: number) => {
-    setJobs(prevJobs => prevJobs.filter(job => job.id !== id));
+  const deleteJob = async (id: number) => {
+    try {
+      // For now, simulate deleting a job
+      // This will be replaced with a Supabase delete in the next phase
+      setJobs(prevJobs => prevJobs.filter(job => job.id !== id));
+      toast.success("Job deleted successfully");
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      toast.error("Failed to delete job");
+      throw error;
+    }
   };
 
   const getJob = (id: number) => {
@@ -131,7 +189,7 @@ export const JobProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return (
-    <JobContext.Provider value={{ jobs, addJob, updateJob, deleteJob, getJob }}>
+    <JobContext.Provider value={{ jobs, addJob, updateJob, deleteJob, getJob, isLoading, error }}>
       {children}
     </JobContext.Provider>
   );

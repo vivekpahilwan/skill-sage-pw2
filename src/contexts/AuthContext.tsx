@@ -1,10 +1,13 @@
 
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 
 export type UserRole = "student" | "placement" | "alumni" | null;
 
-interface User {
+interface UserData {
   id: string;
   name: string;
   email: string;
@@ -13,16 +16,15 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: UserData | null;
   isAuthenticated: boolean;
-  isLoading: boolean; // Adding the isLoading property
+  isLoading: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
   role: UserRole;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
+// Create a temporary mock user for demo purposes
 export const mockUsers = [
   {
     id: "1",
@@ -50,13 +52,19 @@ export const mockUsers = [
   },
 ];
 
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Add isLoading state with initial value true
-  
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const navigate = useNavigate();
+
   useEffect(() => {
-    // Check if there's a stored user in localStorage
+    setIsLoading(true);
+
+    // For now, we'll continue to use localStorage to simulate authentication
+    // This will be replaced with Supabase Auth in the next phase
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
@@ -68,11 +76,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem("user");
       }
     }
-    setIsLoading(false); // Set loading to false after checking authentication
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
-    // Mock authentication
+    // Continue using mock authentication for now
+    // This will be replaced with Supabase Auth in the next phase
     const foundUser = mockUsers.find(u => u.email === email && u.password === password && u.role === role);
     
     return new Promise<void>((resolve, reject) => {
@@ -98,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticated(false);
     localStorage.removeItem("user");
     toast.success("Logged out successfully");
+    navigate("/login");
   };
 
   return (
@@ -105,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated,
-        isLoading, // Include isLoading in the context value
+        isLoading,
         login,
         logout,
         role: user?.role || null,
@@ -123,4 +133,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
