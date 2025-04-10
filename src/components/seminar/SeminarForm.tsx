@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SeminarFormProps {
   initialData?: {
-    id?: number;
+    id?: string;
     title: string;
     date: string;
     time: string;
@@ -27,6 +30,7 @@ interface SeminarFormProps {
 
 const SeminarForm: React.FC<SeminarFormProps> = ({ initialData, onSubmit, mode }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState(
     initialData || {
       title: "",
@@ -61,7 +65,7 @@ const SeminarForm: React.FC<SeminarFormProps> = ({ initialData, onSubmit, mode }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.location || !formData.time) {
@@ -69,7 +73,60 @@ const SeminarForm: React.FC<SeminarFormProps> = ({ initialData, onSubmit, mode }
       return;
     }
 
-    onSubmit(formData);
+    try {
+      if (mode === "create" && user) {
+        // Format data for Supabase
+        const seminarData = {
+          title: formData.title,
+          date: `${formData.date} ${formData.time}`,
+          location: formData.location,
+          description: formData.description || null,
+          max_attendees: formData.maxAttendees ? parseInt(formData.maxAttendees.toString()) : null,
+          current_attendees: 0,
+          requested_by: user.id,
+          is_approved: user.role === "placement" ? true : false, // Auto approve if TPO is creating
+        };
+
+        // Insert new seminar
+        const { data, error } = await supabase
+          .from('seminars')
+          .insert([seminarData])
+          .select();
+
+        if (error) throw error;
+        
+        toast.success(user.role === "placement" 
+          ? "Seminar scheduled successfully" 
+          : "Seminar request submitted successfully");
+        
+        onSubmit(data[0]);
+      } else if (mode === "edit" && initialData?.id) {
+        // Format data for update
+        const seminarData = {
+          title: formData.title,
+          date: `${formData.date} ${formData.time}`,
+          location: formData.location,
+          description: formData.description || null,
+          max_attendees: formData.maxAttendees ? parseInt(formData.maxAttendees.toString()) : null,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Update existing seminar
+        const { data, error } = await supabase
+          .from('seminars')
+          .update(seminarData)
+          .eq('id', initialData.id)
+          .select();
+
+        if (error) throw error;
+        
+        toast.success("Seminar updated successfully");
+        onSubmit(data[0]);
+      }
+    } catch (error: any) {
+      console.error("Error submitting seminar:", error);
+      toast.error(error.message || "Failed to submit seminar");
+    }
   };
 
   return (
