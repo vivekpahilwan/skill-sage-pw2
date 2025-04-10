@@ -19,11 +19,11 @@ const Index = () => {
   }, [isAuthenticated, navigate, isLoading]);
 
   // Show a simple loading state while determining auth status
-  return isLoading ? (
+  return (
     <div className="min-h-screen flex items-center justify-center">
       <p className="text-lg">Loading...</p>
     </div>
-  ) : null;
+  );
 };
 
 export default Index;

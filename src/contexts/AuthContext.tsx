@@ -134,12 +134,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       
       if (error) throw error;
-      
+      if (!data.user) throw new Error("Failed to create user account");
+
       // Create user profile
       const { error: userError } = await supabase
         .from('users')
         .insert([{
-          id: data.user?.id,
+          id: data.user.id,
           email: email,
           full_name: fullName,
           role: selectedRole
@@ -149,10 +150,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Create role-specific profile
       if (selectedRole === 'student') {
-        await supabase
+        const { error: profileError } = await supabase
           .from('student_profiles')
           .insert([{
-            id: data.user?.id,
+            id: data.user.id,
             prn: '',
             department: '',
             year: 1,
@@ -161,20 +162,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             skills: [],
             address: ''
           }]);
+          
+        if (profileError) throw profileError;
       } else if (selectedRole === 'placement') {
-        await supabase
+        const { error: profileError } = await supabase
           .from('tpo_profiles')
           .insert([{
-            id: data.user?.id,
+            id: data.user.id,
             department: '',
             position: '',
             phone: ''
           }]);
+          
+        if (profileError) throw profileError;
       } else if (selectedRole === 'alumni') {
-        await supabase
+        const { error: profileError } = await supabase
           .from('alumni_profiles')
           .insert([{
-            id: data.user?.id,
+            id: data.user.id,
             graduation_year: new Date().getFullYear(),
             company: '',
             position: '',
@@ -183,12 +188,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             industry: '',
             linkedin: ''
           }]);
+          
+        if (profileError) throw profileError;
       }
       
       toast.success("Account created successfully! Please log in.");
       
-      // Remove the return statement that was returning data
-      // This makes the function return void as per the interface
+      // No need to return anything since we're returning void
     } catch (err: any) {
       console.error("Signup error:", err);
       setError(err.message);
@@ -199,7 +205,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -242,7 +248,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     try {
       setIsLoading(true);
       

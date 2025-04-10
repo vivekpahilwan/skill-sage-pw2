@@ -92,8 +92,6 @@ const Login: React.FC = () => {
       
       // Switch to login tab
       document.getElementById("login-tab")?.click();
-      
-      toast.success("Account created successfully! Please log in.");
     } catch (error) {
       // Error is handled in the auth context
     } finally {
