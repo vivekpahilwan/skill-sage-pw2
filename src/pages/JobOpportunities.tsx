@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { BriefcaseBusiness, Calendar, CircleDollarSign, Clock, MapPin, Plus, Search, Trash2 } from "lucide-react";
 import { useSupabase } from "@/hooks/useSupabase";
 import { Opportunity } from "@/services/supabase";
@@ -27,12 +27,10 @@ const JobOpportunities: React.FC = () => {
   
   const { data: jobs, isLoading, error, fetchData, execute } = useSupabase<Opportunity[]>([], true);
 
-  // Fetch jobs on component mount
   useEffect(() => {
     fetchJobs();
   }, []);
 
-  // Fetch jobs based on current filters
   const fetchJobs = async () => {
     await fetchData(async () => {
       const filters: Record<string, any> = {};
@@ -58,21 +56,18 @@ const JobOpportunities: React.FC = () => {
     });
   };
 
-  // Apply filters when they change
   useEffect(() => {
     fetchJobs();
   }, [activeTab, locationFilter, typeFilter]);
 
-  // Handle job creation
   const handleCreateJob = () => {
     navigate("/jobs/create");
   };
 
-  // Handle job deletion
   const handleDeleteJob = async (jobId: string) => {
     await execute(async () => {
       await user?.service.deleteOpportunity(jobId);
-      fetchJobs(); // Refresh the jobs list
+      fetchJobs();
     }, {
       loadingMessage: "Deleting job opportunity...",
       successMessage: "Job opportunity deleted successfully",
@@ -81,7 +76,6 @@ const JobOpportunities: React.FC = () => {
     });
   };
 
-  // Filter jobs by search term
   const filteredJobs = jobs?.filter((job) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -92,7 +86,6 @@ const JobOpportunities: React.FC = () => {
     );
   });
 
-  // Get unique locations and types for filters
   const locations = [...new Set(jobs?.map((job) => job.location))];
   const types = [...new Set(jobs?.map((job) => job.type))];
 
@@ -246,7 +239,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, canDelete, onDelete }) => {
   const { role } = useAuth();
 
   const handleViewDetails = () => {
-    // In the future, navigate to job details page
     toast({
       title: "Job Details",
       description: `Viewing details for ${job.title}`,
@@ -254,7 +246,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, canDelete, onDelete }) => {
   };
 
   const handleApply = () => {
-    // In the future, navigate to application page
     toast({
       title: "Apply for Job",
       description: `Applying for ${job.title}`,
