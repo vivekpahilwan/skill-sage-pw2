@@ -3,20 +3,25 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useNavigate } from "react-router-dom";
 import * as supabaseService from "@/services/supabase";
 
+export type UserRole = 'student' | 'placement' | 'alumni';
+
 export interface UserData {
   id: string;
   email: string;
   name: string;
   service: typeof supabaseService;
+  avatar?: string;
+  role?: UserRole;
 }
 
 interface AuthContextType {
   user: UserData | null;
-  role: 'student' | 'placement' | 'alumni' | null;
+  role: UserRole | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,7 +36,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(null);
-  const [role, setRole] = useState<'student' | 'placement' | 'alumni' | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -51,7 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ...userData,
             service: supabaseService
           });
-          setRole(storedRole as 'student' | 'placement' | 'alumni');
+          setRole(storedRole as UserRole);
         }
       } catch (err: any) {
         console.error("Error checking session:", err);
@@ -72,7 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // This is a mock login - will be replaced with Supabase auth
       if (email && password) {
         // Determine role based on email domain (for demo purposes)
-        let userRole: 'student' | 'placement' | 'alumni' = 'student';
+        let userRole: UserRole = 'student';
         
         if (email.includes("placement")) {
           userRole = 'placement';
@@ -84,6 +89,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           id: "user-123",
           email: email,
           name: email.split('@')[0],
+          role: userRole,
+          avatar: `https://ui-avatars.com/api/?name=${email.split('@')[0]}&background=random`,
           service: supabaseService
         };
         
@@ -126,7 +133,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, login, logout, isLoading, error }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      role, 
+      login, 
+      logout, 
+      isLoading, 
+      error,
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );

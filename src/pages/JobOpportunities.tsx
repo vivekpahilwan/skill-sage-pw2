@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { toast } from "sonner";
+import { toast as sonnerToast } from "sonner";
 import { BriefcaseBusiness, Calendar, CircleDollarSign, Clock, MapPin, Plus, Search, Trash2 } from "lucide-react";
 import { useSupabase } from "@/hooks/useSupabase";
 import { Opportunity } from "@/services/supabase";
@@ -237,17 +238,16 @@ interface JobCardProps {
 const JobCard: React.FC<JobCardProps> = ({ job, canDelete, onDelete }) => {
   const navigate = useNavigate();
   const { role } = useAuth();
+  const { toast } = useToast();
 
   const handleViewDetails = () => {
     toast({
-      title: "Job Details",
       description: `Viewing details for ${job.title}`,
     });
   };
 
   const handleApply = () => {
     toast({
-      title: "Apply for Job",
       description: `Applying for ${job.title}`,
     });
   };

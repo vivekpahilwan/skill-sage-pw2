@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +11,6 @@ import { Award, BookOpen, BriefcaseBusiness } from "lucide-react";
 const Login = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [role, setRole] = useState<UserRole>("student");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +19,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(email, password, role);
+      await login(email, password);
       navigate("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
@@ -31,8 +29,6 @@ const Login = () => {
   };
 
   const handleRoleSelect = (selectedRole: string) => {
-    setRole(selectedRole as UserRole);
-    
     // Set demo credentials based on role
     if (selectedRole === "student") {
       setEmail("student@example.com");
