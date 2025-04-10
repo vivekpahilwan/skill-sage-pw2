@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/Layout/MainLayout";
@@ -40,10 +39,9 @@ const EditJob: React.FC = () => {
   const handleUpdateJob = (formData: any) => {
     if (!job) return;
     
-    // Preserve the original fields that shouldn't be changed
     const updatedJob = { 
       ...formData,
-      id: job.id, // This id is string, which is compatible with JobOpportunity
+      id: job.id,
       posted_date: job.posted_date,
       logo: job.logo,
       posted_by: job.posted_by,
@@ -75,6 +73,18 @@ const EditJob: React.FC = () => {
     );
   }
   
+  const formInitialData = {
+    id: Number(job.id),
+    title: job.title,
+    company: job.company,
+    location: job.location,
+    type: job.type,
+    description: job.description,
+    requirements: job.requirements,
+    salary: job.salary,
+    deadline: job.deadline
+  };
+  
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -90,7 +100,7 @@ const EditJob: React.FC = () => {
           <CardContent>
             <JobForm 
               mode="edit" 
-              initialData={job}
+              initialData={formInitialData}
               onSubmit={handleUpdateJob} 
             />
           </CardContent>

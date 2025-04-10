@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,8 +48,7 @@ const JobOpportunities: React.FC = () => {
         filters.type = typeFilter;
       }
       
-      return await execute(() => {
-        // Fix: instead of using user?.service which doesn't exist, use the imported supabase client or service functions
+      return await execute(async () => {
         let query = supabase
           .from('opportunities')
           .select('*')
@@ -68,7 +66,9 @@ const JobOpportunities: React.FC = () => {
           query = query.eq('type', filters.type);
         }
         
-        return query.order('posted_date', { ascending: false });
+        const { data, error } = await query.order('posted_date', { ascending: false });
+        if (error) throw error;
+        return data;
       });
     }, {
       loadingMessage: "Fetching job opportunities...",
@@ -86,7 +86,6 @@ const JobOpportunities: React.FC = () => {
 
   const handleDeleteJob = async (jobId: string) => {
     await execute(async () => {
-      // Fix: instead of using user?.service which doesn't exist, use the imported supabase client
       const { error } = await supabase
         .from('opportunities')
         .delete()
