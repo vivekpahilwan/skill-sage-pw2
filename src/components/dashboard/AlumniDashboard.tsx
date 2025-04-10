@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,28 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from "sonner";
 import SeminarForm from "@/components/seminar/SeminarForm";
 import { useSeminarContext } from "@/contexts/SeminarContext";
+import { useJobContext } from "@/contexts/JobContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const AlumniDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { seminars, addSeminar, updateSeminar } = useSeminarContext();
+  const { seminars, addSeminar, fetchSeminars } = useSeminarContext();
+  const { jobs, fetchJobs } = useJobContext();
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    fetchSeminars();
+    fetchJobs();
+  }, [fetchSeminars, fetchJobs]);
+  
+  const userSeminars = seminars.filter(seminar => seminar.requested_by === user?.id);
+  const userJobs = jobs.filter(job => job.posted_by === user?.id);
   
   const stats = [
     { 
       id: 1, 
       title: "Job Postings", 
-      value: 8, 
+      value: userJobs.length, 
       icon: BriefcaseBusiness, 
       description: "Jobs you've posted" 
     },
@@ -33,7 +45,7 @@ export const AlumniDashboard: React.FC = () => {
     { 
       id: 3, 
       title: "Seminars Conducted", 
-      value: 3, 
+      value: userSeminars.length, 
       icon: Calendar, 
       description: "This year" 
     },
@@ -68,8 +80,6 @@ export const AlumniDashboard: React.FC = () => {
       avatar: "https://i.pravatar.cc/150?img=9" 
     },
   ];
-  
-  const upcomingSeminars = seminars;
 
   const handlePostJob = () => {
     navigate("/jobs/create");
@@ -83,9 +93,14 @@ export const AlumniDashboard: React.FC = () => {
     navigate(`/seminars/attendees/${seminarId}`);
   };
 
-  const handleSeminarSubmit = (formData: any) => {
-    addSeminar(formData);
-    toast.success("Seminar scheduled successfully");
+  const handleSeminarSubmit = async (formData: any) => {
+    try {
+      await addSeminar(formData);
+      toast.success("Seminar scheduled successfully");
+    } catch (error) {
+      console.error("Error submitting seminar:", error);
+      // Toast is already shown in context
+    }
   };
 
   return (
@@ -191,7 +206,7 @@ export const AlumniDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {upcomingSeminars.map((seminar) => (
+              {userSeminars.map((seminar) => (
                 <div key={seminar.id} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-medium">{seminar.title}</h4>
@@ -216,7 +231,7 @@ export const AlumniDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
-              {upcomingSeminars.length === 0 && (
+              {userSeminars.length === 0 && (
                 <div className="text-center p-8">
                   <Calendar className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
                   <h3 className="mt-4 text-lg font-medium">No Upcoming Seminars</h3>

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +21,12 @@ interface SeminarContextType {
   seminars: Seminar[];
   loading: boolean;
   error: string | null;
-  addSeminar: (seminar: Omit<Seminar, "id" | "current_attendees">) => Promise<void>;
+  addSeminar: (seminar: Omit<Seminar, "id" | "current_attendees" | "is_approved" | "requested_by">) => Promise<void>;
   updateSeminar: (seminar: Seminar) => Promise<void>;
   getSeminar: (id: string) => Promise<Seminar | undefined>;
   fetchSeminars: () => Promise<void>;
   registerForSeminar: (seminarId: string) => Promise<void>;
+  getSeminarAttendees: (seminarId: string) => Promise<any[]>;
 }
 
 const SeminarContext = createContext<SeminarContextType | undefined>(undefined);
@@ -50,11 +52,7 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       const { data, error } = await supabase
         .from('seminars')
-        .select(`
-          *,
-          requested_by_user:users!inner(full_name, email)
-        `)
-        .eq('is_approved', true)
+        .select('*')
         .order('date', { ascending: true });
 
       if (error) throw error;
@@ -66,7 +64,7 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
           id: sem.id,
           title: sem.title,
           date: datePart,
-          time: timePart,
+          time: timePart || '00:00',
           location: sem.location,
           description: sem.description,
           current_attendees: sem.current_attendees,
@@ -90,7 +88,7 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
     fetchSeminars();
   }, []);
 
-  const addSeminar = async (seminarData: Omit<Seminar, "id" | "current_attendees">) => {
+  const addSeminar = async (seminarData: Omit<Seminar, "id" | "current_attendees" | "is_approved" | "requested_by">) => {
     try {
       if (!user) {
         throw new Error("You must be logged in to create a seminar");
@@ -167,37 +165,41 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const getSeminar = async (id: string): Promise<Seminar | undefined> => {
     try {
-      const existingSeminar = seminars.find(sem => sem.id === id);
-      if (existingSeminar) return existingSeminar;
+      setLoading(true);
       
       const { data, error } = await supabase
         .from('seminars')
         .select('*')
         .eq('id', id)
         .single();
-      
+        
       if (error) throw error;
       
-      if (!data) return undefined;
+      if (data) {
+        const [datePart, timePart] = data.date.split(' ');
+        
+        return {
+          id: data.id,
+          title: data.title,
+          date: datePart,
+          time: timePart || '00:00',
+          location: data.location,
+          description: data.description,
+          current_attendees: data.current_attendees,
+          max_attendees: data.max_attendees,
+          requested_by: data.requested_by,
+          is_approved: data.is_approved,
+        };
+      }
       
-      const [datePart, timePart] = data.date.split(' ');
-      
-      return {
-        id: data.id,
-        title: data.title,
-        date: datePart,
-        time: timePart,
-        location: data.location,
-        description: data.description,
-        current_attendees: data.current_attendees,
-        max_attendees: data.max_attendees,
-        requested_by: data.requested_by,
-        is_approved: data.is_approved,
-      };
-    } catch (err: any) {
-      console.error("Error fetching seminar:", err);
-      toast.error("Failed to load seminar details");
       return undefined;
+    } catch (err: any) {
+      console.error("Error getting seminar:", err);
+      setError(err.message);
+      toast.error(err.message || "Failed to get seminar");
+      return undefined;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -209,25 +211,21 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       setLoading(true);
       
-      const { data: existingReg, error: checkError } = await supabase
+      // Check if already registered
+      const { data: existingRegistration, error: checkError } = await supabase
         .from('seminar_attendees')
-        .select('id')
+        .select('*')
         .eq('seminar_id', seminarId)
         .eq('student_id', user.id);
-
+        
       if (checkError) throw checkError;
       
-      if (existingReg && existingReg.length > 0) {
+      if (existingRegistration && existingRegistration.length > 0) {
         toast.error("You are already registered for this seminar");
         return;
       }
-
-      const seminar = await getSeminar(seminarId);
-      if (seminar && seminar.max_attendees && seminar.current_attendees >= seminar.max_attendees) {
-        toast.error("This seminar is at full capacity");
-        return;
-      }
-
+      
+      // Register for the seminar
       const { error: registerError } = await supabase
         .from('seminar_attendees')
         .insert([{
@@ -235,14 +233,25 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
           student_id: user.id,
           registered_at: new Date().toISOString(),
         }]);
-
+        
       if (registerError) throw registerError;
-
+      
+      // Increment attendee count
+      const { data: seminarData, error: getSeminarError } = await supabase
+        .from('seminars')
+        .select('current_attendees')
+        .eq('id', seminarId)
+        .single();
+        
+      if (getSeminarError) throw getSeminarError;
+      
       const { error: updateError } = await supabase
         .from('seminars')
-        .update({ current_attendees: (seminar?.current_attendees || 0) + 1 })
+        .update({ 
+          current_attendees: (seminarData.current_attendees || 0) + 1 
+        })
         .eq('id', seminarId);
-
+        
       if (updateError) throw updateError;
       
       await fetchSeminars();
@@ -257,6 +266,31 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const getSeminarAttendees = async (seminarId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('seminar_attendees')
+        .select(`
+          *,
+          student:student_id (
+            id, 
+            full_name, 
+            email
+          )
+        `)
+        .eq('seminar_id', seminarId);
+        
+      if (error) throw error;
+      
+      return data || [];
+    } catch (err: any) {
+      console.error("Error getting seminar attendees:", err);
+      setError(err.message);
+      toast.error(err.message || "Failed to get seminar attendees");
+      return [];
+    }
+  };
+
   return (
     <SeminarContext.Provider value={{ 
       seminars, 
@@ -266,7 +300,8 @@ export const SeminarProvider: React.FC<{ children: ReactNode }> = ({ children })
       updateSeminar, 
       getSeminar,
       fetchSeminars,
-      registerForSeminar
+      registerForSeminar,
+      getSeminarAttendees
     }}>
       {children}
     </SeminarContext.Provider>

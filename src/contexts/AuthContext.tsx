@@ -1,7 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import * as supabaseService from "@/services/supabase";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export type UserRole = 'student' | 'placement' | 'alumni';
 
@@ -9,7 +10,6 @@ export interface UserData {
   id: string;
   email: string;
   name: string;
-  service: typeof supabaseService;
   avatar?: string;
   role?: UserRole;
 }
@@ -46,17 +46,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkSession = async () => {
       try {
         setIsLoading(true);
-        // In a real app, this would check for a Supabase session
-        const storedUser = localStorage.getItem("user");
-        const storedRole = localStorage.getItem("role");
         
-        if (storedUser && storedRole) {
-          const userData = JSON.parse(storedUser);
-          setUser({
-            ...userData,
-            service: supabaseService
-          });
-          setRole(storedRole as UserRole);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+        
+        if (session) {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (userError) throw userError;
+          
+          if (userData) {
+            setUser({
+              id: userData.id,
+              email: userData.email,
+              name: userData.full_name,
+              role: userData.role as UserRole,
+              avatar: `https://ui-avatars.com/api/?name=${userData.full_name.replace(' ', '+')}&background=random`,
+            });
+            
+            setRole(userData.role as UserRole);
+          }
         }
       } catch (err: any) {
         console.error("Error checking session:", err);
@@ -67,6 +81,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     checkSession();
+    
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (!userError && userData) {
+            setUser({
+              id: userData.id,
+              email: userData.email,
+              name: userData.full_name,
+              role: userData.role as UserRole,
+              avatar: `https://ui-avatars.com/api/?name=${userData.full_name.replace(' ', '+')}&background=random`,
+            });
+            
+            setRole(userData.role as UserRole);
+          }
+        } else {
+          setUser(null);
+          setRole(null);
+        }
+      }
+    );
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -74,40 +120,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(true);
       setError(null);
       
-      // This is a mock login - will be replaced with Supabase auth
-      if (email && password) {
-        // Determine role based on email domain (for demo purposes)
-        let userRole: UserRole = 'student';
-        
-        if (email.includes("placement")) {
-          userRole = 'placement';
-        } else if (email.includes("alumni")) {
-          userRole = 'alumni';
-        }
-        
-        const userData: UserData = {
-          id: "user-123",
-          email: email,
-          name: email.split('@')[0],
-          role: userRole,
-          avatar: `https://ui-avatars.com/api/?name=${email.split('@')[0]}&background=random`,
-          service: supabaseService
-        };
-        
-        setUser(userData);
-        setRole(userRole);
-        
-        // Save to localStorage for persistence
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("role", userRole);
-        
-        navigate("/dashboard");
-      } else {
-        throw new Error("Email and password are required");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      // For now, we'll simulate user roles by checking email domains
+      // In a real app, you'd get this from your users table after auth
+      let userRole: UserRole = 'student';
+      
+      if (email.includes("placement")) {
+        userRole = 'placement';
+      } else if (email.includes("alumni")) {
+        userRole = 'alumni';
       }
+      
+      // Insert or update user in users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .upsert({
+          id: data.user.id,
+          email: email,
+          full_name: email.split('@')[0],
+          role: userRole,
+        }, {
+          onConflict: 'id'
+        })
+        .select()
+        .single();
+        
+      if (userError) throw userError;
+      
+      if (userData) {
+        setUser({
+          id: userData.id,
+          email: userData.email,
+          name: userData.full_name,
+          role: userData.role as UserRole,
+          avatar: `https://ui-avatars.com/api/?name=${userData.full_name.replace(' ', '+')}&background=random`,
+        });
+        
+        setRole(userData.role as UserRole);
+      }
+      
+      navigate("/dashboard");
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -117,16 +179,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
       
-      // Clear user state and local storage
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
       setUser(null);
       setRole(null);
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
       
       navigate("/login");
     } catch (err: any) {
       console.error("Logout error:", err);
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }

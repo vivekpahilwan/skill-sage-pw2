@@ -6,12 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import SeminarForm from "@/components/seminar/SeminarForm";
 import { toast } from "sonner";
 import { useSeminarContext } from "@/contexts/SeminarContext";
+import { Seminar } from "@/contexts/SeminarContext";
 
 const EditSeminar: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getSeminar, updateSeminar } = useSeminarContext();
-  const [seminar, setSeminar] = useState<any | null>(null);
+  const [seminar, setSeminar] = useState<Seminar | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -42,7 +43,9 @@ const EditSeminar: React.FC = () => {
     const updatedSeminar = { 
       ...formData,
       id: seminar?.id,
-      current_attendees: seminar?.current_attendees
+      current_attendees: seminar?.current_attendees,
+      requested_by: seminar?.requested_by,
+      is_approved: seminar?.is_approved
     };
     
     updateSeminar(updatedSeminar);

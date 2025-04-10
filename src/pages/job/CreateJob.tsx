@@ -11,12 +11,17 @@ const CreateJob: React.FC = () => {
   const navigate = useNavigate();
   const { addJob } = useJobContext();
   
-  const handleCreateJob = (formData: any) => {
-    // Add the new job through context
-    addJob(formData);
-    
-    toast.success("Job opportunity created successfully");
-    navigate("/jobs");
+  const handleCreateJob = async (formData: any) => {
+    try {
+      // Add the new job through context
+      await addJob(formData);
+      
+      toast.success("Job opportunity created successfully");
+      navigate("/jobs");
+    } catch (error) {
+      console.error("Error creating job:", error);
+      // Toast is already shown in the context
+    }
   };
   
   return (

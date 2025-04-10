@@ -1,183 +1,236 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, BookOpen, BriefcaseBusiness } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-const Login = () => {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { login } = useAuth();
+const Login: React.FC = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState("student");
+  const [isLoading, setIsLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      await login(email, password);
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
       navigate("/dashboard");
-    } catch (error) {
-      console.error("Login failed:", error);
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Please enter both email and password");
+      return;
+    }
+    
+    await login(email, password);
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password || !fullName) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Register with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: selectedRole
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Create user profile
+      const { error: userError } = await supabase
+        .from('users')
+        .insert([{
+          id: data.user?.id,
+          email: email,
+          full_name: fullName,
+          role: selectedRole
+        }]);
+        
+      if (userError) throw userError;
+      
+      toast.success("Account created successfully! Please log in.");
+      
+      // Clear form
+      setEmail("");
+      setPassword("");
+      setFullName("");
+      setConfirmPassword("");
+      
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast.error(error.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRoleSelect = (selectedRole: string) => {
-    // Set demo credentials based on role
-    if (selectedRole === "student") {
-      setEmail("student@example.com");
-    } else if (selectedRole === "placement") {
-      setEmail("placement@example.com");
-    } else if (selectedRole === "alumni") {
-      setEmail("alumni@example.com");
-    }
-    setPassword("password");
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-skillsage-primary to-skillsage-secondary p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-white p-3 rounded-full">
-              <Award className="h-10 w-10 text-skillsage-primary" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">SkillSage</h1>
-          <p className="text-skillsage-light/80">Skill Assessment Platform</p>
+          <h1 className="text-3xl font-bold">SkillSage</h1>
+          <p className="text-gray-500">College Career Portal</p>
         </div>
-
-        <Card className="shadow-lg animate-fade-in">
-          <CardHeader>
-            <CardTitle className="text-center">Login to Your Account</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <Tabs defaultValue="student" className="mb-6">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger 
-                    value="student" 
-                    onClick={() => handleRoleSelect("student")}
-                    className="flex flex-col py-2 px-1 h-auto"
-                  >
-                    <BookOpen className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Student</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="placement" 
-                    onClick={() => handleRoleSelect("placement")}
-                    className="flex flex-col py-2 px-1 h-auto"
-                  >
-                    <BriefcaseBusiness className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Placement</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="alumni" 
-                    onClick={() => handleRoleSelect("alumni")}
-                    className="flex flex-col py-2 px-1 h-auto"
-                  >
-                    <Award className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Alumni</span>
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="student" className="space-y-4 mt-4">
+        
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="login">
+            <Card>
+              <CardHeader>
+                <CardTitle>Login</CardTitle>
+                <CardDescription>
+                  Enter your credentials to access your account
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleLogin}>
+                <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="student-email">Email</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input 
-                      id="student-email" 
+                      id="email" 
                       type="email" 
+                      placeholder="your@email.com" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="student@example.com" 
-                      required 
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="student-password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <Button variant="link" className="p-0 h-auto" type="button">
+                        Forgot Password?
+                      </Button>
+                    </div>
                     <Input 
-                      id="student-password" 
+                      id="password" 
                       type="password" 
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)} 
-                      placeholder="••••••••" 
-                      required 
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                     />
                   </div>
-                </TabsContent>
-
-                <TabsContent value="placement" className="space-y-4 mt-4">
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full" type="submit" disabled={isLoading}>
+                    {isLoading ? "Logging in..." : "Login"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="signup">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create an Account</CardTitle>
+                <CardDescription>
+                  Enter your details to create a new account
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSignup}>
+                <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="placement-email">Email</Label>
+                    <Label htmlFor="fullName">Full Name</Label>
                     <Input 
-                      id="placement-email" 
+                      id="fullName" 
+                      placeholder="John Doe" 
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Account Type</Label>
+                    <select 
+                      id="role"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                    >
+                      <option value="student">Student</option>
+                      <option value="alumni">Alumni</option>
+                      <option value="placement">Placement Officer</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email-signup">Email</Label>
+                    <Input 
+                      id="email-signup" 
                       type="email" 
+                      placeholder="your@email.com" 
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)} 
-                      placeholder="placement@example.com" 
-                      required 
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="placement-password">Password</Label>
+                    <Label htmlFor="password-signup">Password</Label>
                     <Input 
-                      id="placement-password" 
+                      id="password-signup" 
                       type="password" 
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)} 
-                      placeholder="••••••••" 
-                      required 
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="alumni" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="alumni-email">Email</Label>
-                    <Input 
-                      id="alumni-email" 
-                      type="email" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)} 
-                      placeholder="alumni@example.com" 
-                      required 
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="alumni-password">Password</Label>
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
                     <Input 
-                      id="alumni-password" 
+                      id="confirm-password" 
                       type="password" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)} 
-                      placeholder="••••••••" 
-                      required 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
                     />
                   </div>
-                </TabsContent>
-              </Tabs>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-skillsage-primary hover:bg-skillsage-primary/90" 
-                disabled={isLoading}
-              >
-                {isLoading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              For demo, please use the provided credentials.
-            </p>
-          </CardFooter>
-        </Card>
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full" type="submit" disabled={isLoading}>
+                    {isLoading ? "Creating Account..." : "Create Account"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
