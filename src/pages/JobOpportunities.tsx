@@ -134,7 +134,7 @@ const JobOpportunities: React.FC = () => {
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Location</SelectItem>
+                <SelectItem value="any">Any Location</SelectItem>
                 {locations.map((location) => (
                   <SelectItem key={location} value={location}>
                     {location}
@@ -147,7 +147,7 @@ const JobOpportunities: React.FC = () => {
                 <SelectValue placeholder="Job Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Type</SelectItem>
+                <SelectItem value="any">Any Type</SelectItem>
                 {types.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
