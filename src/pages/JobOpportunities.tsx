@@ -16,6 +16,7 @@ import { toast as sonnerToast } from "sonner";
 import { BriefcaseBusiness, Calendar, CircleDollarSign, Clock, MapPin, Plus, Search, Trash2 } from "lucide-react";
 import { useSupabase } from "@/hooks/useSupabase";
 import { Opportunity } from "@/services/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const JobOpportunities: React.FC = () => {
   const { user, role } = useAuth();
@@ -49,7 +50,25 @@ const JobOpportunities: React.FC = () => {
       }
       
       return await execute(() => {
-        return user?.service.fetchOpportunities(filters);
+        // Fix: instead of using user?.service which doesn't exist, use the imported supabase client or service functions
+        let query = supabase
+          .from('opportunities')
+          .select('*')
+          .eq('is_active', true);
+          
+        if (filters.posted_by) {
+          query = query.eq('posted_by', filters.posted_by);
+        }
+        
+        if (filters.location) {
+          query = query.eq('location', filters.location);
+        }
+        
+        if (filters.type) {
+          query = query.eq('type', filters.type);
+        }
+        
+        return query.order('posted_date', { ascending: false });
       });
     }, {
       loadingMessage: "Fetching job opportunities...",
@@ -67,7 +86,14 @@ const JobOpportunities: React.FC = () => {
 
   const handleDeleteJob = async (jobId: string) => {
     await execute(async () => {
-      await user?.service.deleteOpportunity(jobId);
+      // Fix: instead of using user?.service which doesn't exist, use the imported supabase client
+      const { error } = await supabase
+        .from('opportunities')
+        .delete()
+        .eq('id', jobId);
+        
+      if (error) throw error;
+      
       fetchJobs();
     }, {
       loadingMessage: "Deleting job opportunity...",

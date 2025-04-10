@@ -39,14 +39,37 @@ const EditSeminar: React.FC = () => {
   }, [id, navigate, getSeminar]);
   
   const handleUpdateSeminar = (formData: any) => {
+    if (!seminar) return;
+    
+    // Extract date and time parts if needed
+    // The SeminarForm expects separate date and time fields but Seminar has a single date field
+    let dateOnly = seminar.date;
+    let timeOnly = "12:00"; // Default time if not available in the original data
+    
+    // Check if formData contains separate date and time fields
+    const hasDateTimeFields = formData.date && formData.time;
+    
     // Preserve the original ID and attendees count
     const updatedSeminar = { 
       ...formData,
-      id: seminar?.id,
-      current_attendees: seminar?.current_attendees,
-      requested_by: seminar?.requested_by,
-      is_approved: seminar?.is_approved
+      // If formData has date and time fields, merge them for database storage
+      date: hasDateTimeFields ? `${formData.date} ${formData.time}` : formData.date,
+      id: seminar.id,
+      current_attendees: seminar.current_attendees,
+      requested_by: seminar.requested_by,
+      is_approved: seminar.is_approved
     };
+    
+    // Remove the time field as it's not needed in the database model
+    if (updatedSeminar.time) {
+      delete updatedSeminar.time;
+    }
+    
+    // Rename maxAttendees to max_attendees if needed
+    if (updatedSeminar.maxAttendees) {
+      updatedSeminar.max_attendees = updatedSeminar.maxAttendees;
+      delete updatedSeminar.maxAttendees;
+    }
     
     updateSeminar(updatedSeminar);
     toast.success("Seminar updated successfully");
@@ -73,6 +96,18 @@ const EditSeminar: React.FC = () => {
     );
   }
   
+  // Prepare seminar data for the form
+  // The SeminarForm expects the time to be a separate field
+  const formInitialData = {
+    id: seminar.id,
+    title: seminar.title,
+    date: seminar.date.split(' ')[0] || seminar.date, // Extract date part if possible
+    time: seminar.date.split(' ')[1] || "12:00", // Extract time part if possible, or use default
+    location: seminar.location,
+    description: seminar.description,
+    maxAttendees: seminar.max_attendees
+  };
+  
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -88,7 +123,7 @@ const EditSeminar: React.FC = () => {
           <CardContent>
             <SeminarForm 
               mode="edit" 
-              initialData={seminar}
+              initialData={formInitialData}
               onSubmit={handleUpdateSeminar} 
             />
           </CardContent>

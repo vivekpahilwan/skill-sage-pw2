@@ -43,7 +43,7 @@ const EditJob: React.FC = () => {
     // Preserve the original fields that shouldn't be changed
     const updatedJob = { 
       ...formData,
-      id: job.id,
+      id: job.id, // This id is string, which is compatible with JobOpportunity
       posted_date: job.posted_date,
       logo: job.logo,
       posted_by: job.posted_by,
