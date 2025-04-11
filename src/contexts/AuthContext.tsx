@@ -53,13 +53,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (error) throw error;
         
         if (session) {
+          // First check if the user exists in our users table
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle(); // Changed from single() to maybeSingle() to avoid the error
             
-          if (userError) throw userError;
+          if (userError) {
+            console.error("Error fetching user data:", userError);
+            throw userError;
+          }
           
           if (userData) {
             setUser({
@@ -71,6 +75,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
             
             setRole(userData.role as UserRole);
+          } else {
+            // User not found in our users table, log them out
+            console.warn("User found in auth but not in users table. Logging out.");
+            await supabase.auth.signOut();
+            setUser(null);
+            setRole(null);
           }
         }
       } catch (err: any) {
@@ -91,7 +101,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             .from('users')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle(); // Changed from single() to maybeSingle()
             
           if (!userError && userData) {
             setUser({
@@ -103,6 +113,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
             
             setRole(userData.role as UserRole);
+          } else {
+            // User not found in our users table
+            console.warn("User found in auth but not in users table during state change.");
+            setUser(null);
+            setRole(null);
           }
         } else {
           setUser(null);
@@ -141,83 +156,104 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log("User created successfully:", data.user.id);
       console.log("Creating user profile with role:", selectedRole);
 
-      // Create user profile
-      const { error: userError } = await supabase
-        .from('users')
-        .insert([{
-          id: data.user.id,
-          email: email,
-          full_name: fullName,
-          role: selectedRole
-        }]);
-        
-      if (userError) {
-        console.error("Error creating user profile:", userError);
-        throw userError;
-      }
-      
-      console.log("User profile created successfully. Creating role-specific profile for:", selectedRole);
-      
-      // Create role-specific profile
-      if (selectedRole === 'student') {
-        console.log("Creating student profile");
-        const { error: profileError } = await supabase
-          .from('student_profiles')
-          .insert([{
-            id: data.user.id,
-            prn: '',
-            department: '',
-            year: 1,
-            cgpa: 0,
-            phone: '',
-            skills: [],
-            address: ''
-          }]);
+      // Create user profile with a 2-second timeout for database operations
+      const userCreationPromise = new Promise<void>(async (resolve, reject) => {
+        try {
+          // Create user profile
+          const { error: userError } = await supabase
+            .from('users')
+            .insert([{
+              id: data.user!.id,
+              email: email,
+              full_name: fullName,
+              role: selectedRole
+            }]);
+            
+          if (userError) {
+            console.error("Error creating user profile:", userError);
+            reject(userError);
+            return;
+          }
           
-        if (profileError) {
-          console.error("Error creating student profile:", profileError);
-          throw profileError;
-        }
-      } else if (selectedRole === 'placement') {
-        console.log("Creating placement officer profile");
-        const { error: profileError } = await supabase
-          .from('tpo_profiles')
-          .insert([{
-            id: data.user.id,
-            department: '',
-            position: '',
-            phone: ''
-          }]);
+          console.log("User profile created successfully. Creating role-specific profile for:", selectedRole);
           
-        if (profileError) {
-          console.error("Error creating placement profile:", profileError);
-          throw profileError;
-        }
-      } else if (selectedRole === 'alumni') {
-        console.log("Creating alumni profile");
-        const { error: profileError } = await supabase
-          .from('alumni_profiles')
-          .insert([{
-            id: data.user.id,
-            graduation_year: new Date().getFullYear(),
-            company: '',
-            position: '',
-            experience_years: 0,
-            phone: '',
-            industry: '',
-            linkedin: ''
-          }]);
+          // Create role-specific profile
+          if (selectedRole === 'student') {
+            console.log("Creating student profile");
+            const { error: profileError } = await supabase
+              .from('student_profiles')
+              .insert([{
+                id: data.user!.id,
+                prn: '',
+                department: '',
+                year: 1,
+                cgpa: 0,
+                phone: '',
+                skills: [],
+                address: ''
+              }]);
+              
+            if (profileError) {
+              console.error("Error creating student profile:", profileError);
+              reject(profileError);
+              return;
+            }
+          } else if (selectedRole === 'placement') {
+            console.log("Creating placement officer profile");
+            const { error: profileError } = await supabase
+              .from('tpo_profiles')
+              .insert([{
+                id: data.user!.id,
+                department: '',
+                position: '',
+                phone: ''
+              }]);
+              
+            if (profileError) {
+              console.error("Error creating placement profile:", profileError);
+              reject(profileError);
+              return;
+            }
+          } else if (selectedRole === 'alumni') {
+            console.log("Creating alumni profile");
+            const { error: profileError } = await supabase
+              .from('alumni_profiles')
+              .insert([{
+                id: data.user!.id,
+                graduation_year: new Date().getFullYear(),
+                company: '',
+                position: '',
+                experience_years: 0,
+                phone: '',
+                industry: '',
+                linkedin: ''
+              }]);
+              
+            if (profileError) {
+              console.error("Error creating alumni profile:", profileError);
+              reject(profileError);
+              return;
+            }
+          }
           
-        if (profileError) {
-          console.error("Error creating alumni profile:", profileError);
-          throw profileError;
+          console.log("Role-specific profile created successfully");
+          resolve();
+        } catch (err) {
+          reject(err);
         }
-      }
+      });
       
-      console.log("Role-specific profile created successfully");
+      // Set a timeout to prevent hanging if database operations take too long
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("Database operation timed out. Your account may have been created, but please try logging in."));
+        }, 8000);
+      });
+      
+      // Use Promise.race to either complete the operation or timeout
+      await Promise.race([userCreationPromise, timeoutPromise]);
+      
       toast.success("Account created successfully! Please log in.");
-      
-      // No need to return anything since we're returning void
     } catch (err: any) {
       console.error("Signup error:", err);
       setError(err.message);
@@ -247,27 +283,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .from('users')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle(); // Changed from single() to maybeSingle()
         
       if (userError) {
         console.error("Error fetching user data:", userError);
         throw userError;
       }
       
+      if (!userData) {
+        throw new Error("User profile not found. Please contact support.");
+      }
+      
       console.log("User data fetched:", userData);
       
-      if (userData) {
-        setUser({
-          id: userData.id,
-          email: userData.email,
-          name: userData.full_name,
-          role: userData.role as UserRole,
-          avatar: `https://ui-avatars.com/api/?name=${userData.full_name.replace(' ', '+')}&background=random`,
-        });
-        
-        setRole(userData.role as UserRole);
-        console.log("User role set:", userData.role);
-      }
+      setUser({
+        id: userData.id,
+        email: userData.email,
+        name: userData.full_name,
+        role: userData.role as UserRole,
+        avatar: `https://ui-avatars.com/api/?name=${userData.full_name.replace(' ', '+')}&background=random`,
+      });
+      
+      setRole(userData.role as UserRole);
+      console.log("User role set:", userData.role);
       
       navigate("/dashboard");
     } catch (err: any) {
