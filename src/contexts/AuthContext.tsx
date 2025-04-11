@@ -121,6 +121,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(true);
       setError(null);
       
+      console.log("Signing up with role:", selectedRole);
+      
       // Register with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -136,6 +138,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) throw error;
       if (!data.user) throw new Error("Failed to create user account");
 
+      console.log("User created successfully:", data.user.id);
+      console.log("Creating user profile with role:", selectedRole);
+
       // Create user profile
       const { error: userError } = await supabase
         .from('users')
@@ -146,10 +151,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           role: selectedRole
         }]);
         
-      if (userError) throw userError;
+      if (userError) {
+        console.error("Error creating user profile:", userError);
+        throw userError;
+      }
+      
+      console.log("User profile created successfully. Creating role-specific profile for:", selectedRole);
       
       // Create role-specific profile
       if (selectedRole === 'student') {
+        console.log("Creating student profile");
         const { error: profileError } = await supabase
           .from('student_profiles')
           .insert([{
@@ -163,8 +174,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             address: ''
           }]);
           
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Error creating student profile:", profileError);
+          throw profileError;
+        }
       } else if (selectedRole === 'placement') {
+        console.log("Creating placement officer profile");
         const { error: profileError } = await supabase
           .from('tpo_profiles')
           .insert([{
@@ -174,8 +189,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             phone: ''
           }]);
           
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Error creating placement profile:", profileError);
+          throw profileError;
+        }
       } else if (selectedRole === 'alumni') {
+        console.log("Creating alumni profile");
         const { error: profileError } = await supabase
           .from('alumni_profiles')
           .insert([{
@@ -189,9 +208,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             linkedin: ''
           }]);
           
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Error creating alumni profile:", profileError);
+          throw profileError;
+        }
       }
       
+      console.log("Role-specific profile created successfully");
       toast.success("Account created successfully! Please log in.");
       
       // No need to return anything since we're returning void
@@ -217,6 +240,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (error) throw error;
       
+      console.log("User logged in successfully, fetching user data");
+      
       // Get user data from the users table
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -224,7 +249,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', data.user.id)
         .single();
         
-      if (userError) throw userError;
+      if (userError) {
+        console.error("Error fetching user data:", userError);
+        throw userError;
+      }
+      
+      console.log("User data fetched:", userData);
       
       if (userData) {
         setUser({
@@ -236,6 +266,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         
         setRole(userData.role as UserRole);
+        console.log("User role set:", userData.role);
       }
       
       navigate("/dashboard");

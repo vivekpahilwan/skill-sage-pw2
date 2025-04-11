@@ -81,6 +81,7 @@ const Login: React.FC = () => {
     
     setIsSubmitting(true);
     try {
+      console.log("Submitting signup with role:", selectedRole);
       await signup(email, password, fullName, selectedRole);
       
       // Clear form
@@ -88,7 +89,6 @@ const Login: React.FC = () => {
       setPassword("");
       setFullName("");
       setConfirmPassword("");
-      setSelectedRole("student");
       
       // Switch to login tab
       document.getElementById("login-tab")?.click();
@@ -207,7 +207,10 @@ const Login: React.FC = () => {
                       id="role"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={selectedRole}
-                      onChange={(e) => setSelectedRole(e.target.value as UserRole)}
+                      onChange={(e) => {
+                        console.log("Role selected:", e.target.value);
+                        setSelectedRole(e.target.value as UserRole);
+                      }}
                     >
                       <option value="student">Student</option>
                       <option value="alumni">Alumni</option>
